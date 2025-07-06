@@ -11,7 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "cronogramas_pagos", schema = "loans")
+@Table(name = "cronogramas_pagos", schema = "transaction")
 public class CronogramasPago {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

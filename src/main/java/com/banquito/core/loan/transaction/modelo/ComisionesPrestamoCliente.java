@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Entity
-@Table(name = "comisiones_prestamo_cliente", schema = "loans")
+@Table(name = "comisiones_prestamo_cliente", schema = "transaction")
 public class ComisionesPrestamoCliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

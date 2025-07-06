@@ -16,7 +16,7 @@ import java.util.Set;
 @Setter
 @ToString
 @Entity
-@Table(name = "prestamos_clientes", schema = "loans")
+@Table(name = "prestamos_clientes", schema = "transaction")
 public class PrestamosCliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,9 +24,8 @@ public class PrestamosCliente {
     @Column(name = "id_prestamo_cliente", nullable = false)
     private Integer id;
 
-    @Column(name = "id_cliente", nullable = false) // este atributo espera un uuid de mongo db que esta en otro
-                                                   // microservicio
-    private String idCliente;
+    @Column(name = "id_cliente", nullable = false) // este atributo referencia un ID entero del cliente
+    private Integer idCliente;
 
     @Column(name = "id_prestamo", nullable = false) // este atributo espera un uuid de mongo db que esta en otro
                                                     // microservicio
@@ -35,13 +34,13 @@ public class PrestamosCliente {
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;
 
-    @Column(name = "fecha_aprobacion", nullable = false)
+    @Column(name = "fecha_aprobacion")
     private LocalDate fechaAprobacion;
 
-    @Column(name = "fecha_desembolso", nullable = false)
+    @Column(name = "fecha_desembolso")
     private LocalDate fechaDesembolso;
 
-    @Column(name = "fecha_vencimiento", nullable = false)
+    @Column(name = "fecha_vencimiento")
     private LocalDate fechaVencimiento;
 
     @Column(name = "monto_solicitado", nullable = false, precision = 15, scale = 2)
