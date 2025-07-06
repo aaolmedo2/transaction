@@ -28,10 +28,9 @@ public class PrestamosClienteDTO {
     @Schema(description = "ID único del préstamo cliente", example = "1")
     private Integer id;
 
-    @NotNull(message = "El ID del cliente es requerido")
-    @Positive(message = "El ID del cliente debe ser mayor a cero")
-    @Schema(description = "ID único del cliente", example = "12345", required = true)
-    private Integer idCliente;
+    @NotBlank(message = "El ID del cliente es requerido")
+    @Schema(description = "ID único del cliente", example = "1753898188", required = true)
+    private String idCliente;
 
     @NotBlank(message = "El ID del préstamo es requerido")
     @Schema(description = "ID único del préstamo", example = "507f1f77bcf86cd799439012", required = true)

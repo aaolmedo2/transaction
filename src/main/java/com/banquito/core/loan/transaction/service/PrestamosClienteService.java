@@ -1,7 +1,9 @@
 package com.banquito.core.loan.transaction.service;
 
 import com.banquito.core.loan.transaction.DTO.PrestamosClienteDTO;
+import com.banquito.core.loan.transaction.DTO.external.ClienteDTO;
 import com.banquito.core.loan.transaction.DTO.external.PrestamosDTO;
+import com.banquito.core.loan.transaction.client.ClientesClient;
 import com.banquito.core.loan.transaction.client.PrestamosClient;
 import com.banquito.core.loan.transaction.enums.EstadoPrestamoClienteEnum;
 import com.banquito.core.loan.transaction.exception.CreateException;
@@ -35,6 +37,9 @@ public class PrestamosClienteService {
     @Autowired
     private PrestamosClient prestamosClient;
 
+    @Autowired
+    private ClientesClient clientesClient;
+
     @Transactional(readOnly = true)
     public List<PrestamosClienteDTO> findAll() {
         log.info("Obteniendo todos los préstamos de clientes");
@@ -61,6 +66,9 @@ public class PrestamosClienteService {
         log.info("Creando nuevo préstamo cliente para cliente: {}", prestamosClienteDTO.getIdCliente());
 
         try {
+            // Validar que el cliente existe en el microservicio de clientes
+            validarClienteExistente(prestamosClienteDTO.getIdCliente());
+
             // Validar que el préstamo existe en el microservicio externo
             PrestamosDTO prestamoExterno = validarPrestamoExterno(prestamosClienteDTO.getIdPrestamo());
 
@@ -233,6 +241,52 @@ public class PrestamosClienteService {
                     prestamosClienteDTO.getFechaDesembolso().plusMonths(prestamosClienteDTO.getPlazoMeses()));
             log.info("Fecha de vencimiento calculada: {} (plazo: {} meses)",
                     prestamosClienteDTO.getFechaVencimiento(), prestamosClienteDTO.getPlazoMeses());
+        }
+    }
+
+    private void validarClienteExistente(String idCliente) {
+        log.info("Validando existencia del cliente con ID: {}", idCliente);
+
+        if (idCliente == null || idCliente.trim().isEmpty()) {
+            throw new CreateException("PrestamosCliente", "El ID del cliente es requerido");
+        }
+
+        try {
+            ResponseEntity<ClienteDTO> response = clientesClient.findById(idCliente);
+
+            if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new CreateException("PrestamosCliente",
+                        "Cliente no encontrado con ID: " + idCliente);
+            }
+
+            ClienteDTO cliente = response.getBody();
+
+            // Verificar que el cliente no sea null (validación adicional)
+            if (cliente == null) {
+                throw new CreateException("PrestamosCliente",
+                        "Cliente no encontrado con ID: " + idCliente);
+            }
+
+            // Validar que el cliente esté activo
+            if (cliente.getEstado() == null || !"ACTIVO".equals(cliente.getEstado())) {
+                throw new CreateException("PrestamosCliente",
+                        "El cliente con ID " + idCliente + " no está activo. Estado actual: " +
+                                (cliente.getEstado() != null ? cliente.getEstado() : "INDEFINIDO"));
+            }
+
+            log.info("Cliente validado exitosamente - ID: {}, Nombres: {} {}",
+                    cliente.getId(),
+                    cliente.getNombres() != null ? cliente.getNombres() : "N/A",
+                    cliente.getApellidos() != null ? cliente.getApellidos() : "N/A");
+
+        } catch (Exception e) {
+            if (e instanceof CreateException) {
+                throw e; // Re-lanzar excepciones de negocio
+            }
+
+            log.error("Error al validar cliente externo: {}", e.getMessage());
+            throw new CreateException("PrestamosCliente",
+                    "Error al validar cliente con ID " + idCliente + ": " + e.getMessage());
         }
     }
 }
