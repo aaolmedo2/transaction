@@ -25,7 +25,7 @@ public class PrestamosCliente {
     private Integer id;
 
     @Column(name = "id_cliente", nullable = false) // este atributo referencia un ID entero del cliente
-    private Integer idCliente;
+    private String idCliente;
 
     @Column(name = "id_prestamo", nullable = false) // este atributo espera un uuid de mongo db que esta en otro
                                                     // microservicio
