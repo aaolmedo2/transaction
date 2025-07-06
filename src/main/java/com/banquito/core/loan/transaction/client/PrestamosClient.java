@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(name = "prestamos-service", url = "${loans.transaction.url:http://localhost:8088}")
+@FeignClient(name = "prestamos-service", url = "${catalog.service.url}")
 public interface PrestamosClient {
 
     @GetMapping("/api/v1/prestamos")
