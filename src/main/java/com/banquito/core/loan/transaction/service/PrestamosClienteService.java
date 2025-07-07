@@ -12,6 +12,8 @@ import com.banquito.core.loan.transaction.exception.UpdateException;
 import com.banquito.core.loan.transaction.mapper.PrestamosClienteMapper;
 import com.banquito.core.loan.transaction.modelo.PrestamosCliente;
 import com.banquito.core.loan.transaction.repositorio.PrestamosClienteRepositorio;
+
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -226,16 +228,11 @@ public class PrestamosClienteService {
     }
 
     private void calcularFechas(PrestamosClienteDTO prestamosClienteDTO) {
-        // Establecer fecha de desembolso:
-        // Por lógica de negocio, el desembolso se programa para el día siguiente
-        // (esto puede ajustarse según las reglas de negocio específicas)
         if (prestamosClienteDTO.getFechaDesembolso() == null) {
             prestamosClienteDTO.setFechaDesembolso(prestamosClienteDTO.getFechaInicio().plusDays(1));
             log.info("Fecha de desembolso calculada: {}", prestamosClienteDTO.getFechaDesembolso());
         }
 
-        // Calcular fecha de vencimiento basada en el plazo en meses
-        // La fecha de vencimiento es la fecha de desembolso + plazo en meses
         if (prestamosClienteDTO.getFechaVencimiento() == null) {
             prestamosClienteDTO.setFechaVencimiento(
                     prestamosClienteDTO.getFechaDesembolso().plusMonths(prestamosClienteDTO.getPlazoMeses()));
@@ -247,34 +244,18 @@ public class PrestamosClienteService {
     private void validarClienteExistente(String idCliente) {
         log.info("Validando existencia del cliente con ID: {}", idCliente);
 
-        if (idCliente == null || idCliente.trim().isEmpty()) {
-            throw new CreateException("PrestamosCliente", "El ID del cliente es requerido");
-        }
-
         try {
             ResponseEntity<ClienteDTO> response = clientesClient.findById(idCliente);
 
-            if (response == null || !response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-                throw new CreateException("PrestamosCliente",
-                        "Cliente no encontrado con ID: " + idCliente);
+            if (response == null || response.getBody() == null) {
+                throw new CreateException("PrestamosCliente", "Cliente no encontrado");
             }
 
-            ClienteDTO cliente = response.getBody();
-
-            // Verificar que el cliente no sea null (validación adicional)
-            if (cliente == null) {
-                throw new CreateException("PrestamosCliente",
-                        "Cliente no encontrado con ID: " + idCliente);
-            }
-
-        } catch (Exception e) {
-            if (e instanceof CreateException) {
-                throw e; // Re-lanzar excepciones de negocio
-            }
-
-            log.error("Error al validar cliente externo: {}", e.getMessage());
-            throw new CreateException("PrestamosCliente",
-                    "Error al validar cliente con ID " + idCliente + ": " + e.getMessage());
+        } catch (FeignException.NotFound e) {
+            throw new CreateException("PrestamosCliente", "Cliente no encontrado");
+        } catch (FeignException e) {
+            log.error("Error al comunicarse con servicio de clientes: {}", e.getMessage());
+            throw new CreateException("PrestamosCliente", "Error al validar cliente");
         }
     }
 }
