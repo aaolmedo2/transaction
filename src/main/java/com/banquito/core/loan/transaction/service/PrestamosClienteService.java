@@ -267,18 +267,6 @@ public class PrestamosClienteService {
                         "Cliente no encontrado con ID: " + idCliente);
             }
 
-            // Validar que el cliente esté activo
-            if (cliente.getEstado() == null || !"ACTIVO".equals(cliente.getEstado())) {
-                throw new CreateException("PrestamosCliente",
-                        "El cliente con ID " + idCliente + " no está activo. Estado actual: " +
-                                (cliente.getEstado() != null ? cliente.getEstado() : "INDEFINIDO"));
-            }
-
-            log.info("Cliente validado exitosamente - ID: {}, Nombres: {} {}",
-                    cliente.getId(),
-                    cliente.getNombres() != null ? cliente.getNombres() : "N/A",
-                    cliente.getApellidos() != null ? cliente.getApellidos() : "N/A");
-
         } catch (Exception e) {
             if (e instanceof CreateException) {
                 throw e; // Re-lanzar excepciones de negocio
