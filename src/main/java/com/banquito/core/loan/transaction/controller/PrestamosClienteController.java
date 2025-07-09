@@ -19,8 +19,6 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
-// @CrossOrigin(origins =
-// "http://ec2-18-116-67-249.us-east-2.compute.amazonaws.com:4174")
 @RestController
 @RequestMapping("/api/v1/prestamos-clientes")
 @Tag(name = "Préstamos Clientes", description = "API para la gestión de préstamos de clientes")
@@ -99,5 +97,11 @@ public class PrestamosClienteController {
                 log.info("Actualizando estado del préstamo cliente con ID: {} a estado: {}", id, estado);
                 PrestamosClienteDTO prestamoActualizado = prestamosClienteService.updateEstado(id, estado);
                 return ResponseEntity.ok(prestamoActualizado);
+        }
+
+        @Operation(summary = "Manejo de peticiones OPTIONS para CORS", hidden = true)
+        @RequestMapping(method = RequestMethod.OPTIONS)
+        public ResponseEntity<Void> options() {
+                return ResponseEntity.ok().build();
         }
 }
