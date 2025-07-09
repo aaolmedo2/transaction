@@ -1,6 +1,8 @@
 package com.banquito.core.loan.transaction.service;
 
 import com.banquito.core.loan.transaction.DTO.PrestamosClienteDTO;
+import com.banquito.core.loan.transaction.DTO.ComisionesPrestamoClienteDTO;
+import com.banquito.core.loan.transaction.DTO.SegurosPrestamoClienteDTO;
 import com.banquito.core.loan.transaction.DTO.external.ClienteDTO;
 import com.banquito.core.loan.transaction.DTO.external.PrestamosDTO;
 import com.banquito.core.loan.transaction.client.ClientesClient;
@@ -41,6 +43,12 @@ public class PrestamosClienteService {
 
     @Autowired
     private ClientesClient clientesClient;
+
+    @Autowired
+    private ComisionesPrestamoClienteService comisionesService;
+
+    @Autowired
+    private SegurosPrestamoClienteService segurosService;
 
     @Transactional(readOnly = true)
     public List<PrestamosClienteDTO> findAll() {
@@ -95,6 +103,10 @@ public class PrestamosClienteService {
             PrestamosCliente prestamoGuardado = prestamosClienteRepositorio.save(prestamo);
 
             log.info("Préstamo cliente creado exitosamente con ID: {}", prestamoGuardado.getId());
+
+            // Crear automáticamente las comisiones y seguros asociados
+            crearComisionesYSeguros(prestamoGuardado, prestamosClienteDTO.getIdPrestamo());
+
             return prestamosClienteMapper.toDTO(prestamoGuardado);
 
         } catch (Exception e) {
@@ -256,6 +268,37 @@ public class PrestamosClienteService {
         } catch (FeignException e) {
             log.error("Error al comunicarse con servicio de clientes: {}", e.getMessage());
             throw new CreateException("PrestamosCliente", "Error al validar cliente");
+        }
+    }
+
+    private void crearComisionesYSeguros(PrestamosCliente prestamoGuardado, String idPrestamo) {
+        try {
+            log.info("Creando comisiones y seguros automáticamente para préstamo cliente ID: {}",
+                    prestamoGuardado.getId());
+
+            // Crear comisión automáticamente
+            ComisionesPrestamoClienteDTO comisionDTO = ComisionesPrestamoClienteDTO.builder()
+                    .idPrestamoCliente(prestamoGuardado.getId())
+                    .idComisionPrestamo(idPrestamo)
+                    .build();
+
+            comisionesService.createInternal(comisionDTO);
+            log.info("Comisión creada automáticamente para préstamo cliente ID: {}", prestamoGuardado.getId());
+
+            // Crear seguro automáticamente
+            SegurosPrestamoClienteDTO seguroDTO = SegurosPrestamoClienteDTO.builder()
+                    .idPrestamoCliente(prestamoGuardado.getId())
+                    .idSeguroPrestamo(idPrestamo)
+                    .build();
+
+            segurosService.createInternal(seguroDTO);
+            log.info("Seguro creado automáticamente para préstamo cliente ID: {}", prestamoGuardado.getId());
+
+        } catch (Exception e) {
+            log.warn(
+                    "Error al crear comisiones y/o seguros automáticamente: {}. El préstamo cliente se creó correctamente.",
+                    e.getMessage());
+            // No lanzamos excepción para que no falle la creación del préstamo principal
         }
     }
 }

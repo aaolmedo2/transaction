@@ -11,12 +11,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.validation.Valid;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -26,18 +22,6 @@ public class SegurosPrestamoClienteController {
 
         @Autowired
         private SegurosPrestamoClienteService segurosService;
-
-        @Operation(summary = "Obtener todos los seguros de préstamos de clientes")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Lista de seguros obtenida exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = SegurosPrestamoClienteDTO.class))),
-                        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-        })
-        @GetMapping
-        public ResponseEntity<List<SegurosPrestamoClienteDTO>> findAll() {
-                log.info("Solicitando todos los seguros de préstamos de clientes");
-                List<SegurosPrestamoClienteDTO> seguros = segurosService.findAll();
-                return ResponseEntity.ok(seguros);
-        }
 
         @Operation(summary = "Obtener un seguro por ID")
         @ApiResponses(value = {
@@ -51,20 +35,6 @@ public class SegurosPrestamoClienteController {
                 log.info("Solicitando seguro con ID: {}", id);
                 SegurosPrestamoClienteDTO seguro = segurosService.findById(id);
                 return ResponseEntity.ok(seguro);
-        }
-
-        @Operation(summary = "Crear un nuevo seguro de préstamo cliente")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "201", description = "Seguro creado exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = SegurosPrestamoClienteDTO.class))),
-                        @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
-                        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-        })
-        @PostMapping
-        public ResponseEntity<SegurosPrestamoClienteDTO> create(
-                        @Parameter(description = "Datos del seguro a crear", required = true) @Valid @RequestBody SegurosPrestamoClienteDTO seguroDTO) {
-                log.info("Creando nuevo seguro para préstamo cliente ID: {}", seguroDTO.getIdPrestamoCliente());
-                SegurosPrestamoClienteDTO seguroCreado = segurosService.create(seguroDTO);
-                return ResponseEntity.status(HttpStatus.CREATED).body(seguroCreado);
         }
 
         @Operation(summary = "Eliminar lógicamente un seguro")

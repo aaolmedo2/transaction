@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -38,15 +37,6 @@ public class SegurosPrestamoClienteService {
     private PrestamosClient prestamosClient;
 
     @Transactional(readOnly = true)
-    public List<SegurosPrestamoClienteDTO> findAll() {
-        log.info("Obteniendo todos los seguros de préstamos de clientes");
-        List<SegurosPrestamoCliente> seguros = segurosRepositorio.findAll();
-        return seguros.stream()
-                .map(segurosMapper::toDTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
     public SegurosPrestamoClienteDTO findById(Integer id) {
         log.info("Buscando seguro con ID: {}", id);
         Optional<SegurosPrestamoCliente> seguro = segurosRepositorio.findById(id);
@@ -57,33 +47,6 @@ public class SegurosPrestamoClienteService {
         }
 
         return segurosMapper.toDTO(seguro.get());
-    }
-
-    public SegurosPrestamoClienteDTO create(SegurosPrestamoClienteDTO seguroDTO) {
-        log.info("Creando nuevo seguro para préstamo cliente ID: {}", seguroDTO.getIdPrestamoCliente());
-
-        try {
-            // Validar que el préstamo cliente existe
-            PrestamosCliente prestamoCliente = validarPrestamoClienteExiste(seguroDTO.getIdPrestamoCliente());
-
-            // Validar que el seguro existe en el microservicio externo y corresponde al
-            // mismo préstamo, además calcular los montos
-            calcularYValidarSeguro(seguroDTO, prestamoCliente);
-
-            // Establecer estado por defecto
-            seguroDTO.setEstado(EstadoGeneralEnum.ACTIVO.name());
-
-            // Convertir DTO a entidad y guardar
-            SegurosPrestamoCliente seguro = segurosMapper.toEntity(seguroDTO);
-            SegurosPrestamoCliente seguroGuardado = segurosRepositorio.save(seguro);
-
-            log.info("Seguro creado exitosamente con ID: {}", seguroGuardado.getId());
-            return segurosMapper.toDTO(seguroGuardado);
-
-        } catch (Exception e) {
-            log.error("Error al crear seguro: {}", e.getMessage());
-            throw new CreateException("SegurosPrestamoCliente", "Error al crear seguro: " + e.getMessage());
-        }
     }
 
     public SegurosPrestamoClienteDTO deleteLogical(Integer id) {
@@ -170,6 +133,33 @@ public class SegurosPrestamoClienteService {
             log.error("Error al validar y calcular seguro externo: {}", e.getMessage());
             throw new CreateException("SegurosPrestamoCliente",
                     "Error al validar y calcular seguro externo: " + e.getMessage());
+        }
+    }
+
+    public SegurosPrestamoClienteDTO createInternal(SegurosPrestamoClienteDTO seguroDTO) {
+        log.info("Creando seguro interno para préstamo cliente ID: {}", seguroDTO.getIdPrestamoCliente());
+
+        try {
+            // Validar que el préstamo cliente existe
+            PrestamosCliente prestamoCliente = validarPrestamoClienteExiste(seguroDTO.getIdPrestamoCliente());
+
+            // Validar que el seguro existe en el microservicio externo y corresponde al
+            // mismo préstamo, además calcular los montos
+            calcularYValidarSeguro(seguroDTO, prestamoCliente);
+
+            // Establecer estado por defecto
+            seguroDTO.setEstado(EstadoGeneralEnum.ACTIVO.name());
+
+            // Convertir DTO a entidad y guardar
+            SegurosPrestamoCliente seguro = segurosMapper.toEntity(seguroDTO);
+            SegurosPrestamoCliente seguroGuardado = segurosRepositorio.save(seguro);
+
+            log.info("Seguro interno creado exitosamente con ID: {}", seguroGuardado.getId());
+            return segurosMapper.toDTO(seguroGuardado);
+
+        } catch (Exception e) {
+            log.error("Error al crear seguro interno: {}", e.getMessage());
+            throw new CreateException("SegurosPrestamoCliente", "Error al crear seguro interno: " + e.getMessage());
         }
     }
 }

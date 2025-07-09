@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -37,15 +36,6 @@ public class GarantiasTiposPrestamosClienteService {
 
     @Autowired
     private TiposPrestamosClient tiposPrestamosClient;
-
-    @Transactional(readOnly = true)
-    public List<GarantiasTiposPrestamosClienteDTO> findAll() {
-        log.info("Obteniendo todas las garantías de tipos de préstamos de clientes");
-        List<GarantiasTiposPrestamosCliente> garantias = garantiasRepositorio.findAll();
-        return garantias.stream()
-                .map(garantiasMapper::toDTO)
-                .toList();
-    }
 
     @Transactional(readOnly = true)
     public GarantiasTiposPrestamosClienteDTO findById(Integer id) {

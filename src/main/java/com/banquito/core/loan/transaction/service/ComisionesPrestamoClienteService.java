@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -39,15 +38,6 @@ public class ComisionesPrestamoClienteService {
     private PrestamosClient prestamosClient;
 
     @Transactional(readOnly = true)
-    public List<ComisionesPrestamoClienteDTO> findAll() {
-        log.info("Obteniendo todas las comisiones de préstamos de clientes");
-        List<ComisionesPrestamoCliente> comisiones = comisionesRepositorio.findAll();
-        return comisiones.stream()
-                .map(comisionesMapper::toDTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
     public ComisionesPrestamoClienteDTO findById(Integer id) {
         log.info("Buscando comisión con ID: {}", id);
         Optional<ComisionesPrestamoCliente> comision = comisionesRepositorio.findById(id);
@@ -58,37 +48,6 @@ public class ComisionesPrestamoClienteService {
         }
 
         return comisionesMapper.toDTO(comision.get());
-    }
-
-    public ComisionesPrestamoClienteDTO create(ComisionesPrestamoClienteDTO comisionDTO) {
-        log.info("Creando nueva comisión para préstamo cliente ID: {}", comisionDTO.getIdPrestamoCliente());
-
-        try {
-            // Validar que el préstamo cliente existe
-            PrestamosCliente prestamoCliente = validarPrestamoClienteExiste(comisionDTO.getIdPrestamoCliente());
-
-            // Validar que la comisión existe en el microservicio externo y corresponde al
-            // mismo préstamo, además calcular el monto
-            calcularYValidarComision(comisionDTO, prestamoCliente);
-
-            // Establecer valores por defecto
-            if (comisionDTO.getFechaAplicacion() == null) {
-                comisionDTO.setFechaAplicacion(LocalDate.now());
-            }
-
-            comisionDTO.setEstado(EstadoComisionClienteEnum.PENDIENTE.name());
-
-            // Convertir DTO a entidad y guardar
-            ComisionesPrestamoCliente comision = comisionesMapper.toEntity(comisionDTO);
-            ComisionesPrestamoCliente comisionGuardada = comisionesRepositorio.save(comision);
-
-            log.info("Comisión creada exitosamente con ID: {}", comisionGuardada.getId());
-            return comisionesMapper.toDTO(comisionGuardada);
-
-        } catch (Exception e) {
-            log.error("Error al crear comisión: {}", e.getMessage());
-            throw new CreateException("ComisionesPrestamoCliente", "Error al crear comisión: " + e.getMessage());
-        }
     }
 
     public ComisionesPrestamoClienteDTO deleteLogical(Integer id) {
@@ -182,6 +141,38 @@ public class ComisionesPrestamoClienteService {
             log.error("Error al validar y calcular comisión externa: {}", e.getMessage());
             throw new CreateException("ComisionesPrestamoCliente",
                     "Error al validar y calcular comisión externa: " + e.getMessage());
+        }
+    }
+
+    public ComisionesPrestamoClienteDTO createInternal(ComisionesPrestamoClienteDTO comisionDTO) {
+        log.info("Creando comisión interna para préstamo cliente ID: {}", comisionDTO.getIdPrestamoCliente());
+
+        try {
+            // Validar que el préstamo cliente existe
+            PrestamosCliente prestamoCliente = validarPrestamoClienteExiste(comisionDTO.getIdPrestamoCliente());
+
+            // Validar que la comisión existe en el microservicio externo y corresponde al
+            // mismo préstamo, además calcular el monto
+            calcularYValidarComision(comisionDTO, prestamoCliente);
+
+            // Establecer valores por defecto
+            if (comisionDTO.getFechaAplicacion() == null) {
+                comisionDTO.setFechaAplicacion(LocalDate.now());
+            }
+
+            comisionDTO.setEstado(EstadoComisionClienteEnum.PENDIENTE.name());
+
+            // Convertir DTO a entidad y guardar
+            ComisionesPrestamoCliente comision = comisionesMapper.toEntity(comisionDTO);
+            ComisionesPrestamoCliente comisionGuardada = comisionesRepositorio.save(comision);
+
+            log.info("Comisión interna creada exitosamente con ID: {}", comisionGuardada.getId());
+            return comisionesMapper.toDTO(comisionGuardada);
+
+        } catch (Exception e) {
+            log.error("Error al crear comisión interna: {}", e.getMessage());
+            throw new CreateException("ComisionesPrestamoCliente",
+                    "Error al crear comisión interna: " + e.getMessage());
         }
     }
 }

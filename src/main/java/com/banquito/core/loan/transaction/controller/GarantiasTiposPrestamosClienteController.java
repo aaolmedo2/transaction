@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -26,18 +25,6 @@ public class GarantiasTiposPrestamosClienteController {
 
         @Autowired
         private GarantiasTiposPrestamosClienteService garantiasService;
-
-        @Operation(summary = "Obtener todas las garantías de tipos de préstamos de clientes")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Lista de garantías obtenida exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GarantiasTiposPrestamosClienteDTO.class))),
-                        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-        })
-        @GetMapping
-        public ResponseEntity<List<GarantiasTiposPrestamosClienteDTO>> findAll() {
-                log.info("Solicitando todas las garantías de tipos de préstamos de clientes");
-                List<GarantiasTiposPrestamosClienteDTO> garantias = garantiasService.findAll();
-                return ResponseEntity.ok(garantias);
-        }
 
         @Operation(summary = "Obtener una garantía por ID")
         @ApiResponses(value = {
