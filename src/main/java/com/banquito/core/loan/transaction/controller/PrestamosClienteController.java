@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
+@CrossOrigin(origins = "http://ec2-18-116-67-249.us-east-2.compute.amazonaws.com:4174/")
 @RestController
 @RequestMapping("/api/v1/prestamos-clientes")
 @Tag(name = "Préstamos Clientes", description = "API para la gestión de préstamos de clientes")

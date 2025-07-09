@@ -19,7 +19,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
+@CrossOrigin(origins = "http://ec2-18-116-67-249.us-east-2.compute.amazonaws.com:4174/")
 @RestController
 @RequestMapping("/api/v1/pagos-prestamos")
 @Tag(name = "Pagos de Préstamos", description = "API para gestionar pagos de préstamos")

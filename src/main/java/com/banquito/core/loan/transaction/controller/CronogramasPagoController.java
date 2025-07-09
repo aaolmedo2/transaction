@@ -20,7 +20,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
+@CrossOrigin(origins = "http://ec2-18-116-67-249.us-east-2.compute.amazonaws.com:4174/")
 @RestController
 @RequestMapping("/api/v1/cronogramas-pagos")
 @Tag(name = "Cronogramas de Pagos", description = "API para gestionar cronogramas de pagos de préstamos")
