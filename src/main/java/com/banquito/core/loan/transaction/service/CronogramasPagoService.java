@@ -15,10 +15,14 @@ import com.banquito.core.loan.transaction.enums.EstadoCronogramaEnum;
 import com.banquito.core.loan.transaction.enums.EstadoPrestamoClienteEnum;
 import com.banquito.core.loan.transaction.exception.CreateException;
 import com.banquito.core.loan.transaction.exception.EntityNotFoundException;
+import com.banquito.core.loan.transaction.modelo.ComisionesPrestamoCliente;
 import com.banquito.core.loan.transaction.modelo.CronogramasPago;
 import com.banquito.core.loan.transaction.modelo.PrestamosCliente;
+import com.banquito.core.loan.transaction.modelo.SegurosPrestamoCliente;
+import com.banquito.core.loan.transaction.repositorio.ComisionesPrestamoClienteRepositorio;
 import com.banquito.core.loan.transaction.repositorio.CronogramasPagoRepositorio;
 import com.banquito.core.loan.transaction.repositorio.PrestamosClienteRepositorio;
+import com.banquito.core.loan.transaction.repositorio.SegurosPrestamoClienteRepositorio;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,11 +32,17 @@ public class CronogramasPagoService {
 
     private final CronogramasPagoRepositorio cronogramasPagoRepository;
     private final PrestamosClienteRepositorio prestamosClienteRepository;
+    private final ComisionesPrestamoClienteRepositorio comisionesRepository;
+    private final SegurosPrestamoClienteRepositorio segurosRepository;
 
     public CronogramasPagoService(CronogramasPagoRepositorio cronogramasPagoRepository,
-            PrestamosClienteRepositorio prestamosClienteRepository) {
+            PrestamosClienteRepositorio prestamosClienteRepository,
+            ComisionesPrestamoClienteRepositorio comisionesRepository,
+            SegurosPrestamoClienteRepositorio segurosRepository) {
         this.cronogramasPagoRepository = cronogramasPagoRepository;
         this.prestamosClienteRepository = prestamosClienteRepository;
+        this.comisionesRepository = comisionesRepository;
+        this.segurosRepository = segurosRepository;
     }
 
     public List<CronogramasPagoDTO> obtenerPorPrestamoCliente(Integer idPrestamoCliente) {
@@ -105,6 +115,13 @@ public class CronogramasPagoService {
             BigDecimal montoCuota = calcularCuotaFrancesa(montoSolicitado, tasaInteresMensual, plazoMeses);
             log.info("Monto de la cuota calculada: {}", montoCuota);
 
+            // Obtener comisiones y seguros asociados al préstamo
+            BigDecimal comisionValue = obtenerComision(prestamoCliente);
+            BigDecimal seguroCuota = obtenerSeguroCuota(prestamoCliente);
+
+            log.info("Comisión para el préstamo: {}", comisionValue);
+            log.info("Seguro por cuota para el préstamo: {}", seguroCuota);
+
             // Generación del cronograma
             BigDecimal saldoPendiente = montoSolicitado;
 
@@ -136,8 +153,14 @@ public class CronogramasPagoService {
                 cronograma.setFechaProgramada(fechaProgramada);
                 cronograma.setMontoCuota(capitalAmortizado);
                 cronograma.setInteres(interesPeriodo);
-                cronograma.setComisiones(BigDecimal.ZERO);
-                cronograma.setSeguros(BigDecimal.ZERO);
+
+                // Asignar comisión (solo para la primera cuota, ya que la comisión se cobra una
+                // sola vez)
+                BigDecimal comisionCuota = (i == 1) ? comisionValue : BigDecimal.ZERO;
+                cronograma.setComisiones(comisionCuota);
+
+                // Asignar seguro para esta cuota
+                cronograma.setSeguros(seguroCuota);
 
                 // Calcular el total de la cuota sumando capital, interés, comisiones y seguros
                 BigDecimal total = capitalAmortizado.add(interesPeriodo)
@@ -154,8 +177,8 @@ public class CronogramasPagoService {
                 CronogramasPago cronogramaGuardado = this.cronogramasPagoRepository.save(cronograma);
                 cronogramasGenerados.add(this.transformarADTO(cronogramaGuardado));
 
-                log.info("Cuota {} generada: capital={}, interés={}, total={}, saldo={}",
-                        i, capitalAmortizado, interesPeriodo, total, saldoPendiente);
+                log.info("Cuota {} generada: capital={}, interés={}, comisión={}, seguro={}, total={}, saldo={}",
+                        i, capitalAmortizado, interesPeriodo, comisionCuota, seguroCuota, total, saldoPendiente);
             }
 
             // Actualizar el estado del préstamo cliente a DESEMBOLSADO
@@ -168,6 +191,47 @@ public class CronogramasPagoService {
             throw new CreateException("Cronograma de Pago",
                     "Error al generar el cronograma de pagos: " + e.getMessage());
         }
+    }
+
+    private BigDecimal obtenerComision(PrestamosCliente prestamoCliente) {
+        log.info("Obteniendo comisión para el préstamo cliente ID: {}", prestamoCliente.getId());
+        List<ComisionesPrestamoCliente> comisiones = comisionesRepository.findByIdPrestamoCliente(prestamoCliente);
+
+        if (comisiones.isEmpty()) {
+            log.warn("No se encontraron comisiones asociadas al préstamo cliente ID: {}", prestamoCliente.getId());
+            return BigDecimal.ZERO;
+        }
+
+        // Tomamos la primera comisión activa o pendiente
+        for (ComisionesPrestamoCliente comision : comisiones) {
+            if ("ACTIVO".equals(comision.getEstado()) || "PENDIENTE".equals(comision.getEstado())) {
+                return comision.getMonto();
+            }
+        }
+
+        log.warn("No se encontraron comisiones activas o pendientes para el préstamo cliente ID: {}",
+                prestamoCliente.getId());
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal obtenerSeguroCuota(PrestamosCliente prestamoCliente) {
+        log.info("Obteniendo seguro para el préstamo cliente ID: {}", prestamoCliente.getId());
+        List<SegurosPrestamoCliente> seguros = segurosRepository.findByIdPrestamoCliente(prestamoCliente);
+
+        if (seguros.isEmpty()) {
+            log.warn("No se encontraron seguros asociados al préstamo cliente ID: {}", prestamoCliente.getId());
+            return BigDecimal.ZERO;
+        }
+
+        // Tomamos el primer seguro activo
+        for (SegurosPrestamoCliente seguro : seguros) {
+            if ("ACTIVO".equals(seguro.getEstado())) {
+                return seguro.getMontoCuota();
+            }
+        }
+
+        log.warn("No se encontraron seguros activos para el préstamo cliente ID: {}", prestamoCliente.getId());
+        return BigDecimal.ZERO;
     }
 
     private BigDecimal calcularCuotaFrancesa(BigDecimal montoSolicitado, BigDecimal tasaInteresMensual,
